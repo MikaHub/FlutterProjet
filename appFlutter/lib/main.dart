@@ -1,8 +1,10 @@
 import 'package:appFlutter/LoginPage.dart';
+import 'package:appFlutter/RegisterPage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'LoginPage.dart';
+import 'RegisterPage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +78,7 @@ class _WelcomePageState extends State<WelcomePage> {
                   child: RaisedButton(
                     onPressed: () {
                       Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => Login()));
+                          MaterialPageRoute(builder: (context) => LoginPage()));
                     },
                     elevation: 10,
                     shape: RoundedRectangleBorder(
@@ -94,7 +96,12 @@ class _WelcomePageState extends State<WelcomePage> {
                   minWidth: 120.0,
                   height: 40,
                   child: RaisedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => RegisterPage()));
+                    },
                     elevation: 10,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(7.0),

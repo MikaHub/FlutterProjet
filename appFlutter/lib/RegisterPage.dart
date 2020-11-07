@@ -1,26 +1,26 @@
+import 'package:appFlutter/LoginPage.dart';
 import 'package:appFlutter/main.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'RegisterPage.dart';
 import 'HomePage.dart';
 
-class LoginPage extends StatelessWidget {
+class RegisterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'LoginPage Page',
-      home: _LoginPage(),
+      home: _RegisterPage(),
     );
   }
 }
 
-class _LoginPage extends StatefulWidget {
+class _RegisterPage extends StatefulWidget {
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<_LoginPage> {
+class _RegisterPageState extends State<_RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,7 +33,7 @@ class _LoginPageState extends State<_LoginPage> {
         ),
         backgroundColor: Color.fromRGBO(159, 211, 5, 1),
         centerTitle: true,
-        title: Text('LoginPage'),
+        title: Text('Register Page'),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -44,27 +44,32 @@ class _LoginPageState extends State<_LoginPage> {
                 Colors.black.withOpacity(0.3), BlendMode.dstATop),
           ),
         ),
-        child: _FormLogin(),
+        child: _FormRegister(),
       ),
     );
   }
 }
 
-class _FormLogin extends StatefulWidget {
+class _FormRegister extends StatefulWidget {
   @override
-  _FormLoginState createState() => _FormLoginState();
+  _FormRegisterState createState() => _FormRegisterState();
 }
 
-class _FormLoginState extends State<_FormLogin> {
+class _FormRegisterState extends State<_FormRegister> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameUser = TextEditingController();
   final TextEditingController _emailUser = TextEditingController();
   final TextEditingController _passwordUser = TextEditingController();
   bool hasClick = false;
   String messageError;
+  bool _success = false;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void dispose() {
     _emailUser.dispose();
     _passwordUser.dispose();
+    _nameUser.dispose();
     super.dispose();
   }
 
@@ -79,10 +84,33 @@ class _FormLoginState extends State<_FormLogin> {
             width: 300,
             margin: EdgeInsets.only(left: 30, top: 50, right: 30),
             child: TextFormField(
+              controller: _nameUser,
+              onSaved: (input) => _nameUser.text = input,
+              decoration: const InputDecoration(
+                hintText: 'Enter your name',
+                labelText: 'Name',
+                labelStyle: TextStyle(
+                    height: 0.5,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black),
+              ),
+              validator: (String value) {
+                if (value.isEmpty) {
+                  return 'Please enter some text';
+                }
+                return null;
+              },
+            ),
+          ),
+          Container(
+            width: 300,
+            margin: EdgeInsets.only(left: 30, top: 18, right: 30),
+            child: TextFormField(
               controller: _emailUser,
               onSaved: (input) => _emailUser.text = input,
               decoration: const InputDecoration(
-                hintText: 'Enter you name',
+                hintText: 'mymail@domain.com',
                 labelText: 'Email',
                 labelStyle: TextStyle(
                     height: 0.5,
@@ -100,7 +128,7 @@ class _FormLoginState extends State<_FormLogin> {
           ),
           Container(
             width: 300,
-            margin: EdgeInsets.only(right: 30, left: 30, top: 18),
+            margin: EdgeInsets.only(top: 18, left: 30, right: 30),
             child: TextFormField(
               controller: _passwordUser,
               onSaved: (input) => _passwordUser.text = input,
@@ -132,7 +160,7 @@ class _FormLoginState extends State<_FormLogin> {
                 onPressed: () async {
                   if (_formKey.currentState.validate()) {
                     hasClick = true;
-                    signIn();
+                    register();
                   }
                 },
                 elevation: 10,
@@ -140,7 +168,7 @@ class _FormLoginState extends State<_FormLogin> {
                   borderRadius: BorderRadius.circular(7.0),
                 ),
                 child: Text(
-                  'Login',
+                  'Register',
                   style: TextStyle(color: Colors.white),
                 ),
                 color: Color.fromRGBO(159, 211, 5, 1),
@@ -154,14 +182,13 @@ class _FormLoginState extends State<_FormLogin> {
           Wrap(
             children: [
               Container(
-                margin: EdgeInsets.only(top: 50),
+                margin: EdgeInsets.only(top: 80),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Don\'t have an account?'),
                     InkWell(
                       child: Text(
-                        'Register!',
+                        'I have an account',
                         style: TextStyle(
                             color: Color.fromRGBO(159, 211, 5, 1),
                             fontWeight: FontWeight.bold,
@@ -172,7 +199,7 @@ class _FormLoginState extends State<_FormLogin> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => RegisterPage()));
+                                builder: (context) => LoginPage()));
                       },
                     )
                   ],
@@ -185,21 +212,48 @@ class _FormLoginState extends State<_FormLogin> {
     );
   }
 
-  Future<void> signIn() async {
-    final formState = _formKey.currentState;
-    if (formState.validate()) {
-      formState.save();
-      try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-            email: _emailUser.text, password: _passwordUser.text);
+  void register() async {
+    if (_passwordUser.text.length < 6) {
+      setState(() {
+        messageError = 'Password must be 6 length minimum';
+      });
+    } else if (!_emailUser.text.contains('@')) {
+      messageError = 'Error with mail';
+    }
+    final User user = (await _auth.createUserWithEmailAndPassword(
+      email: _emailUser.text,
+      password: _passwordUser.text,
+    ))
+        .user;
+    try {
+      await user.sendEmailVerification();
+    } catch (e) {
+      print(e);
+    }
+
+    if (user != null) {
+      setState(() {
+        _success = true;
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => HomePage()));
-      } catch (e) {
-        setState(() {
-          messageError = 'Aie aie aie';
-        });
-        print(e.message);
-      }
+      });
+    } else {
+      setState(() {
+        _success = false;
+        _emailUser.text = '';
+        _passwordUser.text = '';
+        _nameUser.text = '';
+      });
+    }
+
+    if (_success) {
+      setState(() {
+        messageError = 'Compte good';
+      });
+    } else {
+      setState(() {
+        messageError = 'Error acc';
+      });
     }
   }
 }
